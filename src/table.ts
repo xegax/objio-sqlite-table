@@ -240,7 +240,17 @@ export class Table extends TableBase {
 
       rows.forEach(row => {
         row.forEach((v, i) => {
-          const col = values[columns[i].name] || (values[columns[i].name] = []);
+          v = v.trim();
+
+          const colAttr = columns[i];
+          if (colAttr.discard)
+            return;
+
+          const col = values[colAttr.name] || (values[colAttr.name] = []);
+          if (colAttr.removeQuotes != false) {
+            if (v.length > 1 && v[0] == '"' && v[v.length - 1] == '"')
+              v = v.substr(1, v.length - 2);
+          }
           col.push(v);
         });
       });
@@ -265,7 +275,20 @@ export class Table extends TableBase {
     let prepCols: Promise<Array<ColumnAttr>>;
     if (args.fileObjId) {
       prepCols = this.holder.getObject<FileObject>(args.fileObjId)
-      .then(csv => this.readColumns(csv));
+      .then(csv => this.readColumns(csv))
+      .then(cols => {
+        if (!args.columns || args.columns.length == 0)
+          return cols;
+
+        args.columns.forEach(argsCol => {
+          const i = cols.findIndex(col => col.name == argsCol.name);
+          if (i == -1)
+            return;
+          cols[i] = { ...cols[i], ...argsCol };
+        });
+
+        return cols;
+      });
     } else {
       prepCols = Promise.resolve( (args.columns || []).map(col => ({...col})) );
     }
@@ -273,8 +296,8 @@ export class Table extends TableBase {
     const task  = prepCols.then(cols => {
       // append idColumn if need
       readRowCols = cols.slice();
-      idCol = createIdColumn(cols, args.idColumn);
-      columns = cols;
+      columns = cols.filter(col => !col.discard);
+      idCol = createIdColumn(columns, args.idColumn);
       return this.openDB();
     })
     .then(db => deleteTable(db, args.table))
