@@ -11,7 +11,8 @@ import {
   LoadCellsArgs,
   Condition,
   CompoundCond,
-  ValueCond
+  ValueCond,
+  CreateSubtableResult
 } from 'objio-object/table';
 import { Database } from 'sqlite3';
 import { SERIALIZER, EXTEND } from 'objio';
@@ -19,11 +20,6 @@ import { CSVReader, CSVBunch } from 'objio/server';
 import { FileObject } from 'objio-object/server/file-object';
 
 let db: Database;
-
-export interface CreateSubtableArgs {
-  table: string;
-  attrs: SubtableAttrs;
-}
 
 function srPromise(db: Database, callback: (resolve, reject) => void): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -103,11 +99,12 @@ export function getCompSqlCondition(cond: CompoundCond): string {
 export function getSqlCondition(cond: Condition): string {
   const comp = cond as CompoundCond;
 
-  if (comp.op && comp.values && comp.values.length)
+  if (comp.op && comp.values)
     return getCompSqlCondition(comp);
 
   const value = cond as ValueCond;
-  return `${value.column}="${value.value}"`;
+  const op = value.inverse ? '!=' : '=';
+  return `${value.column}${op}"${value.value}"`;
 }
 
 function createTable(db: Database, table: string, columns: Columns): Promise<any> {
@@ -184,11 +181,15 @@ function createIdColumn(cols: Array<ColumnAttr>, idColName?: string): ColumnAttr
   return idCol;
 }
 
+let subtableCounter: number = 0;
 export class Table extends TableBase {
+  private subtableMap: {[key: string]: { subtable: string, columns: Array<ColumnAttr> }} = {};
+
   constructor() {
     super();
 
     this.holder.setMethodsToInvoke({
+      createSubtable: (args: SubtableAttrs) => this.createSubtable(args),
       loadCells: (args: LoadCellsArgs) => this.loadCells(args),
       pushCells: (args: PushRowArgs) => this.pushCells(args),
       updateCells: (args: UpdateRowArgs) => this.updateCells(args),
@@ -373,17 +374,51 @@ export class Table extends TableBase {
     );
   }
 
-  createSubtable(args: CreateSubtableArgs): Promise<any> {
-    const cols = (args.attrs.cols && args.attrs.cols.length) ? args.attrs.cols.join(', ') : '*';
-    const cond = args.attrs.filter ? getSqlCondition(args.attrs.filter) : null;
+  createSubtable(args: SubtableAttrs): Promise<CreateSubtableResult> {
+    let tableKey = JSON.stringify(args);
+    const subtable = this.subtableMap[tableKey];
+    if (subtable)
+      return Promise.resolve({ ...subtable[tableKey] });
+
+    let newTable = 'tmp_table_' + subtableCounter++;
+    let cols = (args.cols && args.cols.length) ? args.cols.join(', ') : '*';
+
+    const cond = args.filter ? getSqlCondition(args.filter) : null;
     const where = cond ? ` where ${cond}` : '';
     let orderBy: string = '';
-    if (args.attrs.sort && args.attrs.sort.length)
-      orderBy = `order by ${args.attrs.sort[0].column} ${args.attrs.sort[0].dir}`;
+    if (args.sort && args.sort.length)
+      orderBy = `order by ${args.sort[0].column} ${args.sort[0].dir}`;
 
+    this.subtableMap[tableKey] = {
+      subtable: newTable,
+      columns: !args.cols || args.cols.length == 0 ? this.columns : this.columns.filter(col => {
+        return args.cols.indexOf(col.name) != -1;
+      })
+    };
+
+    let groupBy = '';
+    if (args.distinct) {
+      groupBy = `group by ${args.distinct.column}`;
+      this.subtableMap[tableKey].columns = [
+        { name: args.distinct.column, type: this.columns.find(c => c.name == args.distinct.column).type },
+        { name: 'count', type: 'INTEGER' }
+      ];
+      cols = [args.distinct.column, `count(${args.distinct.column}) as count`].join(', ');
+    }
+
+    const sql = `create temp table ${newTable} as select ${cols} from ${this.table} ${where} ${groupBy} ${orderBy}`;
+    console.log(sql);
+    let db: Database;
     return (
-      this.openDB().
-      then(db => exec(db, `create temp table ${args.table} as select ${cols} from ${this.table} ${where} ${orderBy}`))
+      this.openDB()
+      .then(d => {
+        db = d;
+        return exec(db, sql);
+      })
+      .then(() => loadRowsCount(db, newTable))
+      .then(rowsNum => {
+        return { ...this.subtableMap[tableKey], rowsNum };
+      })
     );
   }
 
@@ -415,6 +450,7 @@ export class Table extends TableBase {
     );
   }
 
+  static TYPE_ID = 'Table';
   static SERIALIZE: SERIALIZER = () => ({
     ...TableBase.SERIALIZE(),
     ...EXTEND({
