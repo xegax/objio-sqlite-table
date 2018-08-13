@@ -377,8 +377,14 @@ export class Table extends TableBase {
   createSubtable(args: SubtableAttrs): Promise<CreateSubtableResult> {
     let tableKey = JSON.stringify(args);
     const subtable = this.subtableMap[tableKey];
-    if (subtable)
-      return Promise.resolve({ ...subtable[tableKey] });
+    if (subtable) {
+      return this.openDB()
+      .then(db => loadRowsCount(db, subtable.subtable))
+      .then(rowsNum => ({
+        ...subtable,
+        rowsNum
+      }));
+    }
 
     let newTable = 'tmp_table_' + subtableCounter++;
     let cols = (args.cols && args.cols.length) ? args.cols.join(', ') : '*';
