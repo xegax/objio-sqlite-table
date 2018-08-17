@@ -90,10 +90,20 @@ function get<T = Object>(db: Database, sql: string): Promise<T> {
   });
 }
 
-export function getCompSqlCondition(cond: CompoundCond): string {
-  return cond.values.map(cond => {
-    return `( ${getSqlCondition(cond)} )`;
-  }).join(` ${cond.op} `);
+export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
+  let sql = '';
+  if (cond.values.length == 1) {
+    sql = getSqlCondition(cond.values[0]);
+  } else {
+    sql = cond.values.map(cond => {
+      return `( ${getSqlCondition(cond)} )`;
+    }).join(` ${cond.op} `);
+  }
+
+  if (cond.table && col)
+    sql = `select ${col} from ${cond.table} where ${sql}`;
+
+  return sql;
 }
 
 export function getSqlCondition(cond: Condition): string {
@@ -103,6 +113,11 @@ export function getSqlCondition(cond: Condition): string {
     return getCompSqlCondition(comp);
 
   const value = cond as ValueCond;
+
+  if (typeof value.value == 'object') {
+    return `${value.column} in (select ${value.column} from ${value.value.table} where ${getCompSqlCondition(value.value)})`;
+  }
+
   const op = value.inverse ? '!=' : '=';
   return `${value.column}${op}"${value.value}"`;
 }
@@ -389,7 +404,12 @@ export class Table extends TableBase {
     let newTable = 'tmp_table_' + subtableCounter++;
     let cols = (args.cols && args.cols.length) ? args.cols.join(', ') : '*';
 
-    const cond = args.filter ? getSqlCondition(args.filter) : null;
+    let cond: string = null;
+    if (typeof args.filter == 'string')
+      cond = args.filter;
+    else if (args.filter)
+      cond = getSqlCondition(args.filter);
+
     const where = cond ? ` where ${cond}` : '';
     let orderBy: string = '';
     if (args.sort && args.sort.length)
