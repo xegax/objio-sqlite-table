@@ -353,10 +353,14 @@ export class Table extends TableBase {
 
   loadCells(args: LoadCellsArgs): Promise<Cells> {
     const table = args.table || this.table;
+    let where = args.filter ? getSqlCondition(args.filter) : '';
+    if (where)
+      where = `where ${where}`;
+
     return (
       this.openDB()
       .then(db => {
-        return all<Object>(db, `select * from ${table} limit ? offset ?`, [args.count, args.first]);
+        return all<Object>(db, `select * from ${table} ${where} limit ? offset ?`, [args.count, args.first]);
       }).then(rows => {
         return rows.map(row => Object.keys(row).map(key => row[key]));
       })
