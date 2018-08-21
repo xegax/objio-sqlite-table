@@ -12,7 +12,9 @@ import {
   Condition,
   CompoundCond,
   ValueCond,
-  CreateSubtableResult
+  CreateSubtableResult,
+  NumStatsArgs,
+  NumStats
 } from 'objio-object/table';
 import { Database } from 'sqlite3';
 import { SERIALIZER, EXTEND } from 'objio';
@@ -114,8 +116,11 @@ export function getSqlCondition(cond: Condition): string {
 
   const value = cond as ValueCond;
 
-  if (typeof value.value == 'object') {
-    return `${value.column} in (select ${value.column} from ${value.value.table} where ${getCompSqlCondition(value.value)})`;
+  if (Array.isArray(value.value) && value.value.length == 2) {
+    return `${value.column} >= ${value.value[0]} and ${value.column} <= ${value.value[1]}`;
+  } else if (typeof value.value == 'object') {
+    const val = value.value as CompoundCond;
+    return `${value.column} in (select ${value.column} from ${val.table} where ${getCompSqlCondition(val)})`;
   }
 
   const op = value.inverse ? '!=' : '=';
@@ -209,7 +214,8 @@ export class Table extends TableBase {
       pushCells: (args: PushRowArgs) => this.pushCells(args),
       updateCells: (args: UpdateRowArgs) => this.updateCells(args),
       removeRows: (args: RemoveRowsArgs) => this.removeRows(args),
-      execute: (args: ExecuteArgs) => this.execute(args)
+      execute: (args: ExecuteArgs) => this.execute(args),
+      getNumStats: (args: NumStatsArgs) => this.getNumStats(args)
     });
 
     this.holder.addEventHandler({
@@ -463,6 +469,16 @@ export class Table extends TableBase {
         this.totalRowsNum = rows;
         this.holder.save();
         return rows;
+      })
+    );
+  }
+
+  getNumStats(args: NumStatsArgs): Promise<NumStats> {
+    const table = args.table || this.table;
+    return (
+      this.openDB()
+      .then(db => {
+        return get<NumStats>(db, `select min(${args.column}) as min, max(${args.column}) as max from ${table} where ${args.column}!=""`);
       })
     );
   }
