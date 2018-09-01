@@ -8,10 +8,10 @@
     "prepare": "npm run clean && tsc -p tsconfig.publish.json -outDir .",
     "postpublish": "npm run clean",
     "dist": "tsc",
-    "dev": "npm run clean-build && tsc -p tsconfig.publish.json -outDir build && shx cp package.json build",
-    "clean": "npm run clean-src && npm run clean-build",
+    "dev": "npm run prepare",
+    "clean": "npm run clean-src && npm run clean-dirs",
     "clean-src": "shx rm -rf src/**/*.js src/**/*.js.map src/**/*.d.ts *.d.ts *.js.map *.js",
-    "clean-build": "shx rm -rf build/**/*"
+    "clean-dirs": "shx rm -rf client server"
   },
   "author": "xega",
   "license": "ISC",

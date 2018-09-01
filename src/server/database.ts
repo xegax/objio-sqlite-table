@@ -1,6 +1,8 @@
 import { Database as SQLite3 } from 'sqlite3';
-import { Database as Base } from '../client/database'
+import { Database as Base } from '../client/database';
 import {
+  TableNameArgs,
+  TableColsArgs,
   ColumnAttr,
   Columns,
   NumStatsArgs,
@@ -14,6 +16,7 @@ import {
   SubtableAttrs,
   CreateSubtableResult
 } from 'objio-object/client/table';
+import { SERIALIZER } from 'objio';
 
 export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
   let sql = '';
@@ -120,8 +123,8 @@ function createTable(db: SQLite3, table: string, columns: Columns): Promise<any>
   return exec(db, `create table ${table} (${sql})`);
 }
 
-function deleteTable(db: SQLite3, table: string): Promise<SQLite3> {
-  return exec(db, `drop table if exists ${table}`).then(() => db);
+function deleteTable(db: SQLite3, table: string): Promise<void> {
+  return exec(db, `drop table if exists ${table}`);
 }
 
 function loadTableInfo(db: SQLite3, table: string): Promise<Columns> {
@@ -157,14 +160,29 @@ export class Database extends Base {
 
     this.holder.addEventHandler({
       onCreate: () => {
-        return this.openDB(this.getFile());
+        console.log('sqlite3 db create');
+        return this.openDB(this.getPath());
       },
       onLoad: () => {
-        return this.openDB(this.getFile());
+        console.log('sqlite3 db load');
+        return this.openDB(this.getPath());
       }
     });
 
-    this.holder.setMethodsToInvoke({});
+    this.holder.setMethodsToInvoke({
+      loadTableInfo: this.loadTableInfo,
+      loadRowsCount: this.loadRowsCount,
+      deleteTable: this.deleteTable,
+      createTable: this.createTable,
+      loadCells: this.loadCells,
+      getNumStats: this.getNumStats,
+      createSubtable: this.createSubtable,
+      pushCells: this.pushCells
+    });
+  }
+
+  loadTableInfo = (args: TableNameArgs) => {
+    return loadTableInfo(this.db, args.table);
   }
 
   getFile(): string {
@@ -178,7 +196,7 @@ export class Database extends Base {
   openDB(file: string): Promise<SQLite3> {
     if (this.db)
       return Promise.resolve(this.db);
-  
+
     return new Promise((resolve, reject) => {
       this.db = new SQLite3(file, (err => {
         if (!err) {
@@ -190,7 +208,15 @@ export class Database extends Base {
     });
   }
 
-  loadCells(args: LoadCellsArgs): Promise<Cells> {
+  createTable = (args: TableColsArgs): Promise<void> => {
+    return createTable(this.db, args.table, args.columns);
+  }
+
+  deleteTable = (args: TableNameArgs): Promise<void> => {
+    return deleteTable(this.db, args.table);
+  }
+
+  loadCells = (args: LoadCellsArgs): Promise<Cells> => {
     const { table, filter, first, count } = args;
     let where = filter ? getSqlCondition(filter) : '';
     if (where)
@@ -205,33 +231,33 @@ export class Database extends Base {
     );
   }
 
-  pushCells(args: PushRowArgs & { table: string }): Promise<number> {
+  pushCells = (args: PushRowArgs & { table: string }): Promise<number> => {
     const values = {...args.values};
     return insert(this.db, args.table, values);
   }
 
-  loadRowsCount(table: string): Promise<number> {
+  loadRowsCount = (args: TableNameArgs): Promise<number> => {
     return (
-      get<{count: number}>(this.db, `select count(*) as count from ${table}`)
+      get<{count: number}>(this.db, `select count(*) as count from ${args.table}`)
       .then(res => res.count)
     );
   }
 
-  getNumStats(args: NumStatsArgs): Promise<NumStats> {
+  getNumStats = (args: NumStatsArgs): Promise<NumStats> => {
     const { table, column } = args;
     const sql = `select min(${column}) as min, max(${column}) as max from ${table} where ${column}!=""`;
     return get<NumStats>(this.db, sql);
   }
 
   getColumns(table: string): Promise<Columns> {
-    return Promise.resolve([]);
+    return this.loadTableInfo({ table });
   }
 
-  createSubtable(args: SubtableAttrs & { table: string }): Promise<CreateSubtableResult> {
+  createSubtable = (args: SubtableAttrs & { table: string }): Promise<CreateSubtableResult> => {
     return (
       this.getColumns(args.table)
       .then(columns => {
-        return this.createSubtableImpl({...args, columns})
+        return this.createSubtableImpl({...args, columns});
       })
     );
   }
@@ -240,7 +266,7 @@ export class Database extends Base {
     let tableKey = JSON.stringify(args);
     const subtable = this.subtableMap[tableKey];
     if (subtable) {
-      this.loadRowsCount(subtable.subtable)
+      this.loadRowsCount({table: subtable.subtable})
       .then(rowsNum => ({
         ...subtable,
         rowsNum
@@ -283,13 +309,14 @@ export class Database extends Base {
 
     return (
       exec(this.db, sql)
-      .then(() => this.loadRowsCount(newTable))
+      .then(() => this.loadRowsCount({table: newTable}))
       .then(rowsNum => {
         return { ...this.subtableMap[tableKey], rowsNum };
       })
     );
   }
 
-  static TYPE_ID = 'SQLite3DB';
-  static SERIALIZE = () => ({});
+  static SERIALIZE: SERIALIZER = () => ({
+    ...Base.SERIALIZE()
+  })
 }
