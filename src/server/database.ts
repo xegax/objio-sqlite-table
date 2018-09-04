@@ -266,7 +266,7 @@ export class Database extends Base {
     let tableKey = JSON.stringify(args);
     const subtable = this.subtableMap[tableKey];
     if (subtable) {
-      this.loadRowsCount({table: subtable.subtable})
+      return this.loadRowsCount({table: subtable.subtable})
       .then(rowsNum => ({
         ...subtable,
         rowsNum
