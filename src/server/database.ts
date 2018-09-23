@@ -170,14 +170,14 @@ export class Database extends Base {
     });
 
     this.holder.setMethodsToInvoke({
-      loadTableInfo: this.loadTableInfo,
-      loadRowsCount: this.loadRowsCount,
-      deleteTable: this.deleteTable,
-      createTable: this.createTable,
-      loadCells: this.loadCells,
-      getNumStats: this.getNumStats,
-      createSubtable: this.createSubtable,
-      pushCells: this.pushCells
+      loadTableInfo:  { method: this.loadTableInfo,   rights: 'read'  },
+      loadRowsCount:  { method: this.loadRowsCount,   rights: 'read'  },
+      deleteTable:    { method: this.deleteTable,     rights: 'write' },
+      createTable:    { method: this.createTable,     rights: 'write' },
+      loadCells:      { method: this.loadCells,       rights: 'read'  },
+      getNumStats:    { method: this.getNumStats,     rights: 'read'  },
+      createSubtable: { method: this.createSubtable,  rights: 'read'  },
+      pushCells:      { method: this.pushCells,       rights: 'read'  }
     });
   }
 
