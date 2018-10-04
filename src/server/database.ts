@@ -190,7 +190,7 @@ export class Database extends Base {
   }
 
   getPath() {
-    return this.holder.getFilePath(this.getFile());
+    return this.holder.getPrivatePath(this.getFile());
   }
 
   openDB(file: string): Promise<SQLite3> {
