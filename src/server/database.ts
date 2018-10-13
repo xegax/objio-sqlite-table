@@ -40,17 +40,26 @@ function getSqlCondition(cond: Condition): string {
   if (comp.op && comp.values)
     return getCompSqlCondition(comp);
 
-  const value = cond as ValueCond;
+  const valueCond = cond as ValueCond;
 
-  if (Array.isArray(value.value) && value.value.length == 2) {
-    return `${value.column} >= ${value.value[0]} and ${value.column} <= ${value.value[1]}`;
-  } else if (typeof value.value == 'object') {
-    const val = value.value as CompoundCond;
-    return `${value.column} in (select ${value.column} from ${val.table} where ${getCompSqlCondition(val)})`;
+  if (Array.isArray(valueCond.value) && valueCond.value.length == 2) {
+    return `${valueCond.column} >= ${valueCond.value[0]} and ${valueCond.column} <= ${valueCond.value[1]}`;
+  } else if (typeof valueCond.value == 'object') {
+    const val = valueCond.value as CompoundCond;
+    return `${valueCond.column} in (select ${valueCond.column} from ${val.table} where ${getCompSqlCondition(val)})`;
   }
 
-  const op = value.inverse ? '!=' : '=';
-  return `${value.column}${op}"${value.value}"`;
+  let value = valueCond.value;
+  let op: string;
+  if (valueCond.like) {
+    op = valueCond.inverse ? ' not like ' : ' like ';
+    if (value.indexOf('%') == -1 && value.indexOf('_') == -1)
+      value = '%' + value + '%';
+  } else {
+    op = valueCond.inverse ? '!=' : '=';
+  }
+
+  return `${valueCond.column}${op}"${value}"`;
 }
 
 function srPromise(db: SQLite3, callback: (resolve, reject) => void): Promise<any> {
