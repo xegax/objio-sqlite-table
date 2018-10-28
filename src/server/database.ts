@@ -142,21 +142,31 @@ function loadTableInfo(db: SQLite3, table: string): Promise<Columns> {
   });
 }
 
-function insert(db: SQLite3, table: string, values: {[col: string]: Array<string>}): Promise<any> {
-  const cols = Object.keys(values);
-  const valsHolder = cols.map(() => '?').join(', ');
-  const allValsHolder = values[cols[0]].map(() => `( ${valsHolder} )`).join(', ');
-
-  const valuesArr = [];
-  const rowsNum = values[cols[0]].length;
-  for (let n = 0;  n < rowsNum; n++) {
-    cols.forEach(col => {
-      valuesArr.push(values[col][n]);
-    });
+function insert(args: PushRowArgs & { table: string; db: SQLite3 }): Promise<any> {
+  const cols: {[name: string]: number} = {};
+  const valuesArr = Array<string>();
+  const holderArr = Array<string>();
+  const values = args.values;
+  if (!args.columns) {
+    for (let n = 0; n < values.length; n++) {
+      const keys = Object.keys(values[n]);
+      for (let c = 0; c < keys.length; c++) {
+        cols[ keys[c] ] = ( cols[ keys[c] ] || 0 ) + 1;
+      }
+    }
+  }
+  
+  const colsArr = args.columns || Object.keys(cols);
+  for (let n = 0; n < values.length; n++) {
+    for (let c = 0; c < colsArr.length; c++) {
+      valuesArr.push(values[n][ colsArr[c] ] || null);
+    }
+    holderArr.push( '(' + colsArr.map(() => '?').join(',') + ')' );
   }
 
-  const sql = `insert into ${table}(${cols.join(',')}) values ${allValsHolder};`;
-  return run(db, sql, valuesArr);
+  const allCols = Object.keys(cols).map(name => name).join(',');
+  const sql = `insert into ${args.table}(${allCols}) values ${holderArr.join(',')};`;
+  return run(args.db, sql, valuesArr);
 }
 
 let subtableCounter: number = 0;
@@ -241,8 +251,7 @@ export class Database extends Base {
   }
 
   pushCells = (args: PushRowArgs & { table: string }): Promise<number> => {
-    const values = {...args.values};
-    return insert(this.db, args.table, values);
+    return insert({ ...args, db: this.db });
   }
 
   loadRowsCount = (args: TableNameArgs): Promise<number> => {
