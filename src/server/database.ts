@@ -164,7 +164,7 @@ function insert(args: PushRowArgs & { table: string; db: SQLite3 }): Promise<any
     holderArr.push( '(' + colsArr.map(() => '?').join(',') + ')' );
   }
 
-  const allCols = Object.keys(cols).map(name => name).join(',');
+  const allCols = colsArr.join(',');
   const sql = `insert into ${args.table}(${allCols}) values ${holderArr.join(',')};`;
   return run(args.db, sql, valuesArr);
 }
