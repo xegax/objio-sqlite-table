@@ -15,7 +15,7 @@ import {
   ValueCond,
   SubtableAttrs,
   CreateSubtableResult
-} from 'objio-object/client/table';
+} from 'objio-object/base/table';
 import { SERIALIZER } from 'objio';
 
 export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
