@@ -155,7 +155,7 @@ function insert(args: PushRowArgs & { table: string; db: SQLite3 }): Promise<any
       }
     }
   }
-  
+
   const colsArr = args.columns || Object.keys(cols);
   for (let n = 0; n < values.length; n++) {
     for (let c = 0; c < colsArr.length; c++) {
@@ -189,18 +189,58 @@ export class Database extends Base {
     });
 
     this.holder.setMethodsToInvoke({
-      loadTableInfo:  { method: this.loadTableInfo,   rights: 'read'  },
-      loadRowsCount:  { method: this.loadRowsCount,   rights: 'read'  },
-      deleteTable:    { method: this.deleteTable,     rights: 'write' },
-      createTable:    { method: this.createTable,     rights: 'write' },
-      loadCells:      { method: this.loadCells,       rights: 'read'  },
-      getNumStats:    { method: this.getNumStats,     rights: 'read'  },
-      createSubtable: { method: this.createSubtable,  rights: 'read'  },
-      pushCells:      { method: this.pushCells,       rights: 'read'  }
+      loadTableInfo: {
+        method: (args: TableNameArgs) => {
+          return this.loadTableInfo(args);
+        },
+        rights: 'read'
+      },
+      loadRowsCount: {
+        method: (args: TableNameArgs) => {
+          return this.loadRowsCount(args);
+        },
+        rights: 'read'
+      },
+      deleteTable: {
+        method: (args: TableNameArgs) => {
+          return this.deleteTable(args);
+        },
+        rights: 'write'
+      },
+      createTable: {
+        method: (args: TableColsArgs) => {
+          return this.createTable(args);
+        },
+        rights: 'write'
+      },
+      loadCells: {
+        method: (args: LoadCellsArgs) => {
+          return this.loadCells(args);
+        },
+        rights: 'read'
+      },
+      getNumStats: {
+        method: (args: NumStatsArgs) => {
+          return this.getNumStats(args);
+        },
+        rights: 'read'
+      },
+      createSubtable: {
+        method: (args: SubtableAttrs & { table: string }) => {
+          return this.createSubtable(args);
+        },
+        rights: 'read'
+      },
+      pushCells: {
+        method: (args: PushRowArgs & {table: string}) => {
+          return this.pushCells(args);
+        },
+        rights: 'read'
+      }
     });
   }
 
-  loadTableInfo = (args: TableNameArgs) => {
+  loadTableInfo(args: TableNameArgs) {
     return loadTableInfo(this.db, args.table);
   }
 
@@ -227,15 +267,15 @@ export class Database extends Base {
     });
   }
 
-  createTable = (args: TableColsArgs): Promise<void> => {
+  createTable(args: TableColsArgs): Promise<void> {
     return createTable(this.db, args.table, args.columns);
   }
 
-  deleteTable = (args: TableNameArgs): Promise<void> => {
+  deleteTable(args: TableNameArgs): Promise<void> {
     return deleteTable(this.db, args.table);
   }
 
-  loadCells = (args: LoadCellsArgs): Promise<Cells> => {
+  loadCells(args: LoadCellsArgs): Promise<Cells> {
     const { table, filter, first, count } = args;
     let where = filter ? getSqlCondition(filter) : '';
     if (where)
@@ -250,18 +290,18 @@ export class Database extends Base {
     );
   }
 
-  pushCells = (args: PushRowArgs & { table: string }): Promise<number> => {
+  pushCells(args: PushRowArgs & { table: string }): Promise<number> {
     return insert({ ...args, db: this.db });
   }
 
-  loadRowsCount = (args: TableNameArgs): Promise<number> => {
+  loadRowsCount(args: TableNameArgs): Promise<number> {
     return (
       get<{count: number}>(this.db, `select count(*) as count from ${args.table}`)
       .then(res => res.count)
     );
   }
 
-  getNumStats = (args: NumStatsArgs): Promise<NumStats> => {
+  getNumStats(args: NumStatsArgs): Promise<NumStats> {
     const { table, column } = args;
     const sql = `select min(${column}) as min, max(${column}) as max from ${table} where ${column}!=""`;
     return get<NumStats>(this.db, sql);
@@ -271,7 +311,7 @@ export class Database extends Base {
     return this.loadTableInfo({ table });
   }
 
-  createSubtable = (args: SubtableAttrs & { table: string }): Promise<CreateSubtableResult> => {
+  createSubtable(args: SubtableAttrs & { table: string }): Promise<CreateSubtableResult> {
     return (
       this.getColumns(args.table)
       .then(columns => {
