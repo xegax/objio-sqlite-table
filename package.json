@@ -5,13 +5,14 @@
   "main": "index.js",
   "repository": "git@github.com:xegax/objio-sqlite-table.git",
   "scripts": {
-    "prepare": "npm run clean && tsc -p tsconfig.publish.json -outDir .",
+    "prepare": "npm run clean && tsc -p tsconfig.publish.json -outDir . && npm run copy",
     "postpublish": "npm run clean",
     "dist": "tsc",
     "dev": "npm run prepare",
     "clean": "npm run clean-src && npm run clean-dirs",
     "clean-src": "shx rm -rf src/**/*.js src/**/*.js.map src/**/*.d.ts *.d.ts *.js.map *.js",
-    "clean-dirs": "shx rm -rf client server view"
+    "clean-dirs": "shx rm -rf client server view images",
+    "copy": "shx rm -rf images && shx cp -rf ./src/images ./images"
   },
   "author": "xega",
   "license": "ISC",
