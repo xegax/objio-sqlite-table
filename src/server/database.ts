@@ -159,7 +159,7 @@ function insert(args: PushRowArgs & { table: string; db: SQLite3 }): Promise<any
   const colsArr = args.columns || Object.keys(cols);
   for (let n = 0; n < values.length; n++) {
     for (let c = 0; c < colsArr.length; c++) {
-      valuesArr.push(values[n][ colsArr[c] ] || null);
+      valuesArr.push(values[n][ colsArr[c] ] as string || null);
     }
     holderArr.push( '(' + colsArr.map(() => '?').join(',') + ')' );
   }
