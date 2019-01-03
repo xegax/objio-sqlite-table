@@ -6,7 +6,6 @@
   "repository": "git@github.com:xegax/objio-sqlite-table.git",
   "scripts": {
     "prepare": "npm run clean && tsc -p tsconfig.json -outDir . && npm run copy",
-    "postpublish": "npm run clean",
     "dist": "tsc",
     "dev": "npm run prepare",
     "clean": "npm run clean-src && npm run clean-dirs",
