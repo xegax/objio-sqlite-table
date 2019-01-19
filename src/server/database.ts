@@ -1,5 +1,4 @@
 import { Database as SQLite3 } from 'sqlite3';
-import { Database as Base } from '../client/database';
 import {
   TableNameArgs,
   TableColsArgs,
@@ -14,8 +13,9 @@ import {
   CompoundCond,
   ValueCond,
   SubtableAttrs,
-  CreateSubtableResult
-} from 'objio-object/base/table';
+  CreateSubtableResult,
+  DatabaseBase
+} from 'objio-object/base/database';
 import { SERIALIZER } from 'objio';
 
 export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
@@ -170,7 +170,7 @@ function insert(args: PushRowArgs & { table: string; db: SQLite3 }): Promise<any
 }
 
 let subtableCounter: number = 0;
-export class Database extends Base {
+export class Database extends DatabaseBase {
   private db: SQLite3;
   private subtableMap: {[key: string]: { subtable: string, columns: Array<ColumnAttr> }} = {};
 
@@ -374,7 +374,8 @@ export class Database extends Base {
     );
   }
 
+  static TYPE_ID = 'SQLite3Database';
   static SERIALIZE: SERIALIZER = () => ({
-    ...Base.SERIALIZE()
+    ...DatabaseBase.SERIALIZE()
   })
 }
