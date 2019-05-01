@@ -27,6 +27,7 @@ export class Database2 extends DatabaseBase {
   private db: SQLite3;
   private tempTables: {[key: string]: { tableName: string, columns: Array<string> }} = {};
   private tmpTableCounter = 0;
+  private tableList: Array<TableInfo>;
 
   constructor() {
     super();
@@ -67,17 +68,22 @@ export class Database2 extends DatabaseBase {
         return this.openDB(this.getPath());
       },
       onLoad: () => {
-        return this.openDB(this.getPath());
+        return this.loadTableList();
       }
     });
   }
 
   loadTableList(): Promise<Array<TableInfo>> {
+    if (this.tableList)
+      return Promise.resolve(this.tableList);
+
     return (
       this.openDB()
       .then(db => loadTableList(db))
       .then(arr => {
         return Promise.all(arr.map(table => this.loadTableInfo({ tableName: table })));
+      }).then(list => {
+        return this.tableList = list;
       })
     );
   }
@@ -181,14 +187,20 @@ export class Database2 extends DatabaseBase {
           )
         );
       })
+      .then(res => {
+        this.tableList = null;
+        return this.loadTableList().then(() => res);
+      })
     );
   }
 
   deleteTable(args: DeleteTableArgs): Promise<void> {
     return (
       this.openDB()
+      .then(() => deleteTable(this.db, args.tableName))
       .then(() => {
-        return deleteTable(this.db, args.tableName);
+        this.tableList = null;
+        return this.loadTableList().then(() => {});
       })
     );
   }
@@ -200,7 +212,10 @@ export class Database2 extends DatabaseBase {
         table: args.tableName,
         values: args.rows
       })
-      .then(pushRows => ({ pushRows }))
+      .then(() => {
+        this.tableList = null;
+        return { pushRows: args.rows.length };
+      })
     );
   }
 
@@ -238,6 +253,7 @@ export class Database2 extends DatabaseBase {
     if (this.db)
       return Promise.resolve(this.db);
 
+    file = file || this.getPath();
     return new Promise((resolve, reject) => {
       this.db = new SQLite3(file, (err => {
         if (!err) {
