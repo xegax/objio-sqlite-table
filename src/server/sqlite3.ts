@@ -126,6 +126,16 @@ export function deleteTable(db: SQLite3, table: string): Promise<void> {
   return exec(db, `drop table if exists ${table}`);
 }
 
+export function deleteData(args: {db: SQLite3, table: string, where?: string}): Promise<void> {
+  let where = args.where || '';
+  if (where)
+    where = `where ${where}`;
+  const sql = `delete from ${args.table} ${where}`;
+  
+  console.log(sql);
+  return exec(args.db, sql);
+}
+
 export function loadTableInfo(db: SQLite3, table: string): Promise<Columns> {
   return (
     all<ColumnAttr>(db, `pragma table_info(${table})`)

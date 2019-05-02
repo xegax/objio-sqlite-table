@@ -7,7 +7,8 @@ import {
   CreateTableArgs,
   DeleteTableArgs,
   PushDataArgs,
-  PushDataResult
+  PushDataResult,
+  DeleteDataArgs
 } from 'objio-object/base/database-holder';
 import { DatabaseBase } from '../base/database';
 
@@ -42,6 +43,10 @@ export class Database2 extends DatabaseBase {
 
   pushData(args: PushDataArgs): Promise<PushDataResult> {
     return this.holder.invokeMethod({ method: 'pushData', args });
+  }
+
+  deleteData(args: DeleteDataArgs): Promise<void> {
+    return this.holder.invokeMethod({ method: 'deleteData', args });
   }
 
   isRemote() {

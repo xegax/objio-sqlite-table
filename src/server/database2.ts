@@ -7,7 +7,10 @@ import {
   CreateTableArgs,
   DeleteTableArgs,
   PushDataArgs,
-  PushDataResult
+  PushDataResult,
+  DeleteDataArgs,
+  CompoundCond,
+  ValueCond
 } from 'objio-object/base/database-holder';
 import { DatabaseBase } from '../base/database';
 import { Database as SQLite3 } from 'sqlite3';
@@ -19,9 +22,54 @@ import {
   all,
   exec,
   createTable,
-  deleteTable
+  deleteTable,
+  deleteData
 } from './sqlite3';
 import { StrMap } from 'objio-object/common/interfaces';
+
+export function getCompoundSQLCond(cond: CompoundCond, col?: string): string {
+  let sql = '';
+  if (cond.values.length == 1) {
+    sql = getSQLCond(cond.values[0]);
+  } else {
+    sql = cond.values.map(cond => {
+      return `( ${getSQLCond(cond)} )`;
+    }).join(` ${cond.op} `);
+  }
+
+  if (cond.table && col)
+    sql = `select ${col} from ${cond.table} where ${sql}`;
+
+  return sql;
+}
+
+export function getSQLCond(cond: ValueCond | CompoundCond): string {
+  const comp = cond as CompoundCond;
+
+  if (comp.op && comp.values)
+    return getCompoundSQLCond(comp);
+
+  const valueCond = cond as ValueCond;
+
+  if (Array.isArray(valueCond.value) && valueCond.value.length == 2) {
+    return `${valueCond.column} >= ${valueCond.value[0]} and ${valueCond.column} <= ${valueCond.value[1]}`;
+  } else if (typeof valueCond.value == 'object') {
+    const val = valueCond.value as CompoundCond;
+    return `${valueCond.column} in (select ${valueCond.column} from ${val.table} where ${getCompoundSQLCond(val)})`;
+  }
+
+  let value = valueCond.value;
+  let op: string;
+  if (valueCond.like) {
+    op = valueCond.inverse ? ' not like ' : ' like ';
+    if (value.indexOf('%') == -1 && value.indexOf('_') == -1)
+      value = '%' + value + '%';
+  } else {
+    op = valueCond.inverse ? '!=' : '=';
+  }
+
+  return `${valueCond.column}${op}"${value}"`;
+}
 
 export class Database2 extends DatabaseBase {
   private db: SQLite3;
@@ -59,6 +107,14 @@ export class Database2 extends DatabaseBase {
       },
       deleteTable: {
         method: (args: DeleteTableArgs) => this.deleteTable(args),
+        rights: 'write'
+      },
+      pushData: {
+        method: (args: PushDataArgs) => this.pushData(args),
+        rights: 'write'
+      },
+      deleteData: {
+        method: (args: DeleteDataArgs) => this.deleteData(args),
         rights: 'write'
       }
     });
@@ -215,6 +271,16 @@ export class Database2 extends DatabaseBase {
       .then(() => {
         this.tableList = null;
         return { pushRows: args.rows.length };
+      })
+    );
+  }
+
+  deleteData(args: DeleteDataArgs): Promise<void> {
+    return (
+      deleteData({
+        db: this.db,
+        table: args.tableName,
+        where: getCompoundSQLCond(args.cond)
       })
     );
   }
