@@ -1,39 +1,38 @@
 import {
-  TmpTableArgs,
-  TableInfo,
-  TableArgs,
-  TableData,
   TableDataArgs,
   CreateTableArgs,
   DeleteTableArgs,
   PushDataArgs,
   PushDataResult,
-  DeleteDataArgs
-} from 'objio-object/base/database-holder';
+  DeleteDataArgs,
+  TableDesc,
+  LoadTableGuidArgs,
+  LoadTableGuidResult,
+  TableGuid,
+  LoadTableDataArgs,
+  LoadTableDataResult
+} from 'objio-object/base/database-holder-decl';
+// import { Datab} from 'objio-object/base/database-holder';
 import { DatabaseBase } from '../base/database';
 
 export class Database2 extends DatabaseBase {
-  loadTableList(): Promise<Array<TableInfo>> {
+  loadTableList(): Promise<Array<TableDesc>> {
     return this.holder.invokeMethod({ method: 'loadTableList', args: {} });
   }
 
-  loadTableInfo(args: TableArgs): Promise<TableInfo> {
-    return this.holder.invokeMethod({ method: 'loadTableInfo', args });
+  loadTableGuid(args: LoadTableGuidArgs): Promise<LoadTableGuidResult> {
+    return this.holder.invokeMethod({ method: 'loadTableGuid', args });
   }
 
-  loadTableRowsNum(args: TableArgs): Promise<number> {
+  loadTableRowsNum(args: TableGuid): Promise<number> {
     return this.holder.invokeMethod({ method: 'loadTableRowsNum', args });
   }
 
-  loadTableData(args: TableDataArgs): Promise<TableData> {
+  loadTableData(args: LoadTableDataArgs): Promise<LoadTableDataResult> {
     return this.holder.invokeMethod({ method: 'loadTableData', args });
   }
 
-  createTempTable(args: TmpTableArgs): Promise<TableInfo> {
-    return this.holder.invokeMethod({ method: 'createTempTable', args });
-  }
-
-  createTable(args: CreateTableArgs): Promise<TableInfo> {
+  createTable(args: CreateTableArgs): Promise<TableDesc> {
     return this.holder.invokeMethod({ method: 'createTable', args });
   }
 
