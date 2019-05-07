@@ -13,7 +13,9 @@ import {
   LoadTableDataArgs,
   LoadTableDataResult,
   LoadTableGuidResult,
-  TableDescShort
+  TableDescShort,
+  LoadAggrDataArgs,
+  LoadAggrDataResult
 } from 'objio-object/base/database-holder-decl';
 import { DatabaseBase } from '../base/database';
 import { Database as SQLite3 } from 'sqlite3';
@@ -136,6 +138,10 @@ export class Database2 extends DatabaseBase {
       deleteData: {
         method: (args: DeleteDataArgs) => this.deleteData(args),
         rights: 'write'
+      },
+      loadAggrData: {
+        method: (args: LoadAggrDataArgs) => this.loadAggrData(args),
+        rights: 'read'
       }
     });
 
@@ -189,6 +195,7 @@ export class Database2 extends DatabaseBase {
     console.log(sql);
     return (
       data.createTask = this.openDB()
+      .then(() => deleteTable(this.db, tmpTable))
       .then(() => exec(this.db, sql))
       .then(() => 
         Promise.all([
@@ -347,8 +354,7 @@ export class Database2 extends DatabaseBase {
     );
   }
 
-  invalidateGuids(table: string): Promise<void> {
-    let tasks = Array<Promise<void>>();
+  invalidateGuids(table: string) {
     Object.keys(this.guidMap)
     .forEach(key => {
       const data = this.guidMap[key];
@@ -356,11 +362,7 @@ export class Database2 extends DatabaseBase {
         return;
 
       data.invalid = true;
-      console.log('invalidate', data.tmpTable);
-      tasks.push(deleteTable(this.db, data.tmpTable));
     });
-
-    return Promise.all(tasks).then(() => {});
   }
 
   pushData(args: PushDataArgs): Promise<PushDataResult> {
@@ -370,8 +372,8 @@ export class Database2 extends DatabaseBase {
         table: args.tableName,
         values: args.rows
       })
-      .then(() => this.invalidateGuids(args.tableName))
       .then(() => {
+        this.invalidateGuids(args.tableName);
         this.tableList = null;
         return { pushRows: args.rows.length };
       })
@@ -387,6 +389,10 @@ export class Database2 extends DatabaseBase {
       })
       .then(() => this.invalidateGuids(args.tableName))
     );
+  }
+
+  loadAggrData(args: LoadAggrDataArgs): Promise<LoadAggrDataResult> {
+    return Promise.reject('not implemented');
   }
 
   isRemote() {
