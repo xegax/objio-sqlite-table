@@ -15,7 +15,8 @@ import {
   LoadTableGuidResult,
   TableDescShort,
   LoadAggrDataArgs,
-  LoadAggrDataResult
+  LoadAggrDataResult,
+  AggregationFunc
 } from 'objio-object/base/database-holder-decl';
 import { DatabaseBase } from '../base/database';
 import { Database as SQLite3 } from 'sqlite3';
@@ -26,11 +27,16 @@ import {
   insert,
   all,
   exec,
+  get,
   createTable,
   deleteTable,
   deleteData,
 } from './sqlite3';
 import { StrMap } from 'objio-object/common/interfaces';
+
+export function aggConv(agg: AggregationFunc, column: string) {
+  return `${agg}(${column})`;
+}
 
 export function getCompoundSQLCond(cond: CompoundCond, col?: string): string {
   let sql = '';
@@ -253,7 +259,8 @@ export class Database2 extends DatabaseBase {
     if (!guidData)
       p = this.createTableGuid(args, argsKey);
     else if (guidData.invalid)
-      p = this.createTempTable(guid).then(res => {
+      p = this.createTempTable(guid)
+      .then(res => {
         guidData.desc.rowsNum = res.rowsNum;
         guidData.desc.columns = res.columns;
         return { guid };
@@ -392,7 +399,24 @@ export class Database2 extends DatabaseBase {
   }
 
   loadAggrData(args: LoadAggrDataArgs): Promise<LoadAggrDataResult> {
-    return Promise.reject('not implemented');
+    return (
+      this.getGuidData(args.guid)
+      .then(data => {
+        let sqlArr = args.values.map((v, i) => aggConv(v.aggs, v.column) + ` as col${i}`);
+        return get(this.db, `select ${sqlArr.join(', ')} from ${data.tmpTable}`);
+      })
+      .then(res => {
+        return {
+          values: args.values.map((v, i) => {
+            return {
+              column: v.column,
+              aggs: v.aggs,
+              value: res['col'+i]
+            };
+          })
+        };
+      })
+    );
   }
 
   isRemote() {
