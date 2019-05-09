@@ -21,8 +21,8 @@ export function sqlTable(table: string) {
 }
 
 export function quoteValue(value: string | number) {
-  value = ('' + value).replace(/'/g, '\\\'');
-  return `'${value}'`;
+  value = ('' + value).replace(/"/g, '\\\"');
+  return `"${value}"`;
 }
 
 export function getCompSqlCondition(cond: CompoundCond, col?: string): string {

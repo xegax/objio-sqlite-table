@@ -392,12 +392,12 @@ export class Database2 extends DatabaseBase {
   }
 
   updateData(args: UpdateDataArgs): Promise<void> {
-    const vals = args.values.map(value => `${sqlColumn(value.column)}=${quoteValue(value.value)}`).join(',');
+    const vals = args.values.map(value => `${sqlColumn(value.column)}=?`).join(',');
     const where = args.cond ? 'where ' + getCompoundSQLCond(args.cond) : '';
     // const limit = args.limit != null ? `limit ${args.limit}` : '';
     const sql = `update ${sqlTable(args.tableName)} set ${vals} ${where}`;
     return (
-      exec(this.db, sql)
+      all(this.db, sql, args.values.map(v => v.value))
       .then(() => this.invalidateGuids(args.tableName))
     );
   }
