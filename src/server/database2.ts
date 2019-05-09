@@ -16,7 +16,8 @@ import {
   TableDescShort,
   LoadAggrDataArgs,
   LoadAggrDataResult,
-  AggregationFunc
+  AggregationFunc,
+  UpdateDataArgs
 } from 'objio-object/base/database-holder-decl';
 import { DatabaseBase } from '../base/database';
 import { Database as SQLite3 } from 'sqlite3';
@@ -31,6 +32,9 @@ import {
   createTable,
   deleteTable,
   deleteData,
+  quoteValue,
+  sqlColumn,
+  sqlTable
 } from './sqlite3';
 import { StrMap } from 'objio-object/common/interfaces';
 
@@ -384,6 +388,17 @@ export class Database2 extends DatabaseBase {
         this.tableList = null;
         return { pushRows: args.rows.length };
       })
+    );
+  }
+
+  updateData(args: UpdateDataArgs): Promise<void> {
+    const vals = args.values.map(value => `${sqlColumn(value.column)}=${quoteValue(value.value)}`).join(',');
+    const where = args.cond ? 'where ' + getCompoundSQLCond(args.cond) : '';
+    // const limit = args.limit != null ? `limit ${args.limit}` : '';
+    const sql = `update ${sqlTable(args.tableName)} set ${vals} ${where}`;
+    return (
+      exec(this.db, sql)
+      .then(() => this.invalidateGuids(args.tableName))
     );
   }
 

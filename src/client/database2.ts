@@ -12,7 +12,8 @@ import {
   LoadTableDataArgs,
   LoadTableDataResult,
   LoadAggrDataArgs,
-  LoadAggrDataResult
+  LoadAggrDataResult,
+  UpdateDataArgs
 } from 'objio-object/base/database-holder-decl';
 // import { Datab} from 'objio-object/base/database-holder';
 import { DatabaseBase } from '../base/database';
@@ -48,6 +49,10 @@ export class Database2 extends DatabaseBase {
 
   deleteData(args: DeleteDataArgs): Promise<void> {
     return this.holder.invokeMethod({ method: 'deleteData', args });
+  }
+
+  updateData(args: UpdateDataArgs): Promise<void> {
+    return this.holder.invokeMethod({ method: 'updateData', args });
   }
 
   loadAggrData(args: LoadAggrDataArgs): Promise<LoadAggrDataResult> {

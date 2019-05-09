@@ -8,6 +8,23 @@ import {
   ValueCond
 } from 'objio-object/base/database';
 
+export function sqlInt(int: number | string) {
+  return +int;
+}
+
+export function sqlColumn(column: string) {
+  return column;
+}
+
+export function sqlTable(table: string) {
+  return table;
+}
+
+export function quoteValue(value: string | number) {
+  value = ('' + value).replace(/'/g, '\\\'');
+  return `'${value}'`;
+}
+
 export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
   let sql = '';
   if (cond.values.length == 1) {
