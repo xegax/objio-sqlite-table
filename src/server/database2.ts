@@ -89,7 +89,7 @@ export function getSQLCond(cond: ValueCond | CompoundCond): string {
   return `${valueCond.column}${op}"${value}"`;
 }
 
-interface GuidMapData {
+export interface GuidMapData {
   args: LoadTableGuidArgs;
   desc: TableDesc;
   tmpTable: string;
