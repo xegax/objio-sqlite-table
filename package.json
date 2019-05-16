@@ -1,6 +1,6 @@
 {
   "name": "objio-sqlite-table",
-  "version": "0.0.38",
+  "version": "0.0.40",
   "description": "",
   "main": "index.js",
   "repository": "git@github.com:xegax/objio-sqlite-table.git",
@@ -19,8 +19,8 @@
     "@types/sqlite3": "^3.1.3"
   },
   "dependencies": {
-    "objio": "^0.0.38",
-    "objio-object": "^0.0.38",
+    "objio": "^0.0.40",
+    "objio-object": "^0.0.40",
     "sqlite3": "^4.0.2"
   }
 }
