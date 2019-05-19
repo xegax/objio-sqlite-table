@@ -5,7 +5,7 @@ import { Icon } from 'ts-react-ui/icon';
 import 'ts-react-ui/typings';
 import * as SQLITEIcon from '../images/sqlite.svg';
 import { ObjectToCreate }  from 'objio-object/common/interfaces';
-import { OBJIOItemClassViewable, registerViews } from 'objio-object/view/config';
+import { OBJIOItemClassViewable } from 'objio-object/view/config';
 
 export function getObjectsToCreate(): Array<ObjectToCreate> {
   return [

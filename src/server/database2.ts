@@ -18,7 +18,7 @@ import {
   LoadAggrDataResult,
   AggregationFunc,
   UpdateDataArgs
-} from 'objio-object/base/database-holder-decl';
+} from 'objio-object/base/database/database-holder-decl';
 import { DatabaseBase } from '../base/database';
 import { Database as SQLite3 } from 'sqlite3';
 import {

@@ -1,12 +1,20 @@
 import { Database as SQLite3 } from 'sqlite3';
-import {
-  ColumnAttr,
-  Columns,
-  PushRowArgs,
-  Condition,
-  CompoundCond,
-  ValueCond
-} from 'objio-object/base/database';
+
+export interface PushRowArgs {
+  columns?: Array<string>;
+  values: Array<{[key: string]: string}>;
+}
+
+export interface ColumnAttr {
+  name: string;
+  type: string;
+  notNull?: boolean;
+  primary?: boolean;
+  autoInc?: boolean;
+  unique?: boolean;
+}
+
+type Columns = Array<ColumnAttr>;
 
 export function sqlInt(int: number | string) {
   return +int;
@@ -23,50 +31,6 @@ export function sqlTable(table: string) {
 export function quoteValue(value: string | number) {
   value = ('' + value).replace(/"/g, '\\\"');
   return `"${value}"`;
-}
-
-export function getCompSqlCondition(cond: CompoundCond, col?: string): string {
-  let sql = '';
-  if (cond.values.length == 1) {
-    sql = getSqlCondition(cond.values[0]);
-  } else {
-    sql = cond.values.map(cond => {
-      return `( ${getSqlCondition(cond)} )`;
-    }).join(` ${cond.op} `);
-  }
-
-  if (cond.table && col)
-    sql = `select ${col} from ${cond.table} where ${sql}`;
-
-  return sql;
-}
-
-export function getSqlCondition(cond: Condition): string {
-  const comp = cond as CompoundCond;
-
-  if (comp.op && comp.values)
-    return getCompSqlCondition(comp);
-
-  const valueCond = cond as ValueCond;
-
-  if (Array.isArray(valueCond.value) && valueCond.value.length == 2) {
-    return `${valueCond.column} >= ${valueCond.value[0]} and ${valueCond.column} <= ${valueCond.value[1]}`;
-  } else if (typeof valueCond.value == 'object') {
-    const val = valueCond.value as CompoundCond;
-    return `${valueCond.column} in (select ${valueCond.column} from ${val.table} where ${getCompSqlCondition(val)})`;
-  }
-
-  let value = valueCond.value;
-  let op: string;
-  if (valueCond.like) {
-    op = valueCond.inverse ? ' not like ' : ' like ';
-    if (value.indexOf('%') == -1 && value.indexOf('_') == -1)
-      value = '%' + value + '%';
-  } else {
-    op = valueCond.inverse ? '!=' : '=';
-  }
-
-  return `${valueCond.column}${op}"${value}"`;
 }
 
 export function srPromise(db: SQLite3, callback: (resolve, reject) => void): Promise<any> {

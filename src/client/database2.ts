@@ -14,7 +14,7 @@ import {
   LoadAggrDataArgs,
   LoadAggrDataResult,
   UpdateDataArgs
-} from 'objio-object/base/database-holder-decl';
+} from 'objio-object/base/database/database-holder-decl';
 // import { Datab} from 'objio-object/base/database-holder';
 import { DatabaseBase } from '../base/database';
 
