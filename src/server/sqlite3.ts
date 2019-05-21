@@ -14,7 +14,7 @@ export interface ColumnAttr {
   unique?: boolean;
 }
 
-type Columns = Array<ColumnAttr>;
+export type Columns = Array<ColumnAttr>;
 
 export function sqlInt(int: number | string) {
   return +int;
@@ -112,7 +112,7 @@ export function deleteData(args: {db: SQLite3, table: string, where?: string}): 
   if (where)
     where = `where ${where}`;
   const sql = `delete from ${args.table} ${where}`;
-  
+
   console.log(sql);
   return exec(args.db, sql);
 }
