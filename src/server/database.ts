@@ -147,7 +147,7 @@ export class Database extends DatabaseBase {
         return list.map((table, i) => {
           return {
             table: arr[i],
-            columns: [],
+            columns: table.map(c => ({ colName: c.name, colType: c.type })),
             rowsNum: 0
           };
         });
