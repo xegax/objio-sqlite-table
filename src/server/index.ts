@@ -1,8 +1,8 @@
 import { OBJIOItemClass } from 'objio';
-import { Database2 } from './database2';
+import { Database } from './database';
 
 export function getClasses(): Array<OBJIOItemClass> {
   return [
-    Database2
+    Database
   ];
 }

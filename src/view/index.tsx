@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DatabaseHolder } from 'objio-object/client/database/database-holder';
-import { Database2 } from '../client/database2';
+import { Database } from '../client/database';
 import { Icon } from 'ts-react-ui/icon';
 import 'ts-react-ui/typings';
 import * as SQLITEIcon from '../images/sqlite.svg';
@@ -13,7 +13,7 @@ export function getObjectsToCreate(): Array<ObjectToCreate> {
       name: 'sqlite3',
       desc: 'sqlite3 database',
       icon: <Icon src={SQLITEIcon}/>,
-      create: () => new DatabaseHolder({ impl: new Database2() })
+      create: () => new DatabaseHolder({ impl: new Database() })
     }
   ];
 }
