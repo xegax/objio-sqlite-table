@@ -166,6 +166,9 @@ export class Database extends DatabaseBase {
 
   createTempTable(args: CreateTempTableArgs): Promise<TableDescShort> {
     let cols = '*';
+    if (args.columns && args.columns.length)
+      cols = args.columns.join(',');
+
     const tmpTable = args.tmpTableName;
     const table = args.table;
     const where = args.cond ? 'where ' + getCompoundSQLCond(args.cond) : '';
