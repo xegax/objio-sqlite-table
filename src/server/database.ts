@@ -173,7 +173,7 @@ export class Database extends DatabaseBase {
     const table = args.table;
     const where = args.cond ? 'where ' + getCompoundSQLCond(args.cond) : '';
     const groupBy = '';
-    const orderBy = '';
+    const orderBy = (args.order && args.order.length) ? 'order by ' + args.order.map(c => `${c.column} ${c.reverse ? 'desc' : 'asc'}`).join(', ') : '';
     const sql = `create temp table ${tmpTable} as select ${cols} from ${table} ${where} ${groupBy} ${orderBy}`;
 
     console.log(sql);
