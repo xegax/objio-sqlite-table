@@ -16,7 +16,8 @@ import {
   LoadAggrDataResult,
   AggregationFunc,
   UpdateDataArgs,
-  TableArgs
+  TableArgs,
+  RangeCond
 } from 'objio-object/base/database/database-decl';
 import { Database as SQLite3 } from 'sqlite3';
 import {
@@ -56,13 +57,25 @@ export function getCompoundSQLCond(cond: CompoundCond, col?: string): string {
   return sql;
 }
 
-export function getSQLCond(cond: ValueCond | CompoundCond): string {
+export function getSQLCond(cond: ValueCond | CompoundCond | RangeCond): string {
   const comp = cond as CompoundCond;
 
   if (comp.op && comp.values)
     return getCompoundSQLCond(comp);
 
   const valueCond = cond as ValueCond;
+  const rangeCond = cond as RangeCond;
+
+  if (rangeCond.range) {
+    const range = rangeCond.range;
+    if (range[0] == null || range[1] == null)
+      throw `invalid range values [${range[0]}, ${range[1]}]`;
+
+    if (typeof(range[0]) != 'number' || typeof(range[1]) != 'number')
+      throw 'invalid type of range values';
+
+    return `${valueCond.column} >= ${range[0]} and ${valueCond.column} <= ${range[1]}`;
+  }
 
   if (Array.isArray(valueCond.value) && valueCond.value.length == 2) {
     return `${valueCond.column} >= ${valueCond.value[0]} and ${valueCond.column} <= ${valueCond.value[1]}`;
@@ -166,13 +179,18 @@ export class Database extends DatabaseBase {
 
   createTempTable(args: CreateTempTableArgs): Promise<TableDescShort> {
     let cols = '*';
+
+    if (args.distinct) {
+      cols = [args.distinct, `count(${args.distinct}) as ${args.distinct}_count`].join(',');
+    }
+
     if (args.columns && args.columns.length)
       cols = args.columns.join(',');
 
     const tmpTable = args.tmpTableName;
     const table = args.table;
     const where = args.cond ? 'where ' + getCompoundSQLCond(args.cond) : '';
-    const groupBy = '';
+    const groupBy = args.distinct ? `group by ${args.distinct}` : '';
     const orderBy = (args.order && args.order.length) ? 'order by ' + args.order.map(c => `${c.column} ${c.reverse ? 'desc' : 'asc'}`).join(', ') : '';
     const sql = `create temp table ${tmpTable} as select ${cols} from ${table} ${where} ${groupBy} ${orderBy}`;
 
